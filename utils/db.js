@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 class DBClient {
   constructor() {
@@ -22,14 +22,23 @@ class DBClient {
       });
   }
 
+  // Check if the client is connected
   isAlive() {
     return this.client && this.client.topology && this.client.topology.isConnected();
   }
 
+  // Get the database instance after connection is successful
+  getDB() {
+    if (!this.db) {
+      throw new Error('MongoDB connection not established');
+    }
+    return this.db;
+  }
+
+  // Count users in the 'users' collection
   async nbUsers() {
-    if (!this.db) return 0;
     try {
-      const usersCollection = this.db.collection('users');
+      const usersCollection = this.getDB().collection('users');
       return await usersCollection.countDocuments();
     } catch (error) {
       console.error('Error counting users:', error);
@@ -37,10 +46,10 @@ class DBClient {
     }
   }
 
+  // Count files in the 'files' collection
   async nbFiles() {
-    if (!this.db) return 0;
     try {
-      const filesCollection = this.db.collection('files');
+      const filesCollection = this.getDB().collection('files');
       return await filesCollection.countDocuments();
     } catch (error) {
       console.error('Error counting files:', error);
@@ -50,4 +59,4 @@ class DBClient {
 }
 
 const dbClient = new DBClient();
-export default dbClient;
+export { dbClient as default, ObjectId };
