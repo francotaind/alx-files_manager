@@ -1,19 +1,34 @@
-import redisClient from './utils/redis';
+import dbClient from './utils/db';
+
+const waitConnection = () => {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+
+    const repeatFct = async () => {
+      if (dbClient.isAlive()) {
+        resolve();
+      } else if (attempts >= 10) {
+        reject(new Error('Unable to connect to MongoDB after 10 attempts'));
+      } else {
+        attempts += 1;
+        setTimeout(repeatFct, 1000); // Retry after 1 second
+      }
+    };
+
+    repeatFct();
+  });
+};
 
 (async () => {
-  // Wait for Redis connection
-  while (!redisClient.isAlive()) {
-    console.log('Waiting for Redis client to connect...');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for 100ms
+  console.log(dbClient.isAlive()); // Initial state
+
+  try {
+    await waitConnection(); // Wait for connection
+    console.log(dbClient.isAlive()); // Should be true if connected
+    console.log(await dbClient.nbUsers()); // Number of users
+    console.log(await dbClient.nbFiles()); // Number of files
+  } catch (error) {
+    console.error('Error:', error.message); // Handle connection failure
   }
-
-  console.log(redisClient.isAlive());
-  console.log(await redisClient.get('myKey'));
-  await redisClient.set('myKey', 12, 5);
-  console.log(await redisClient.get('myKey'));
-
-  setTimeout(async () => {
-    console.log(await redisClient.get('myKey'));
-  }, 1000 * 10);
 })();
 
