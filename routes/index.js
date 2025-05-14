@@ -2,7 +2,7 @@ import express from 'express';
 import AppController from '../controllers/AppController.js';
 import UsersController from '../controllers/UsersController.js';
 import AuthController from '../controllers/AuthController.js';
-import { postUpload } from '../controllers/FilesController.js';
+import * as FilesController from '../controllers/FilesController.js'; 
 
 const router = express.Router();
 
@@ -13,6 +13,8 @@ router.post('/users', UsersController.postNew);
 router.get('/connect', AuthController.getConnect);
 router.get('/disconnect', AuthController.getDisconnect);
 router.get('/users/me', UsersController.getMe);
-router.post('/files', postUpload);
+router.post('/files', FilesController.postUpload);
+router.get('/files/:id', FilesController.getShow);
+router.get('/files', FilesController.getIndex);
 
 export default router;

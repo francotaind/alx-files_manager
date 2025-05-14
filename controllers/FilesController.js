@@ -100,3 +100,75 @@ export async function postUpload(req, res) {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 }
+export async function getShow(req, res) {
+  try {
+    const token = req.headers['x-token'];
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const fileId = req.params.id;
+    const file = await dbClient.getDB().collection('files').findOne({
+      _id: ObjectId(fileId),
+      userId: ObjectId(userId),
+    });
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    return res.status(200).json({
+      id: file._id,
+      userId: file.userId,
+      name: file.name,
+      type: file.type,
+      isPublic: file.isPublic,
+      parentId: file.parentId,
+    });
+  } catch (error) {
+    console.error('Error in getShow:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+export async function getIndex(req, res) {
+  try {
+    const token = req.headers['x-token'];
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { parentId = '0', page = 0 } = req.query;
+    const skip = parseInt(page) * 20;
+    const limit = 20;
+
+    const files = await dbClient.getDB().collection('files').aggregate([
+      {
+        $match: {
+          userId: ObjectId(userId),
+          parentId: parentId === '0' ? '0' : ObjectId(parentId),
+        },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+    ]).toArray();
+
+    return res.status(200).json(files.map(file => ({
+      id: file._id,
+      userId: file.userId,
+      name: file.name,
+      type: file.type,
+      isPublic: file.isPublic,
+      parentId: file.parentId,
+    })));
+  } catch (error) {
+    console.error('Error in getIndex:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
